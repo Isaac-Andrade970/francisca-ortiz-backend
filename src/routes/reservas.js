@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const googleCalendar = require('../services/googleCalendar');
+const email = require('../services/email');
 
 // RUTA: GET /api/reservas/disponibilidad \\
 
@@ -61,6 +62,17 @@ router.post('/', async (request, response) => {
         }
 
         const evento = await googleCalendar.crearEvento(reserva);
+
+        try {
+            await Promise.all([
+                email.enviarEmailClienta(reserva),
+                email.enviarEmailFrancisca(reserva)
+            ]);
+            console.log('✅ Emails de confirmación enviados');
+        } catch (errorEmail) {
+            console.error('⚠️ Error al enviar emails:', errorEmail.message);
+        // No interrumpimos el flujo, la reserva ya está en el calendar
+        }   
 
         response.status(201).json({
             mensaje: 'Reserva creada exitosamente',
