@@ -54,23 +54,21 @@ async function enviarEmailClienta(reserva) {
                     <p style="margin: 5px 0;"><strong>Hora:</strong> ${horaFormateada}</p>
                 </div>
 
-                <div style="background-color: #F5E8DE; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <h3 style="margin-top: 0; color: #8B4A6B;">Importante: tu reserva queda confirmada con abono</h3>
-                    <p style="color: #5E4D47; margin: 10px 0;">
-                        Para confirmar tu cita, debes realizar un abono de <strong>$10.000</strong>
-                        que se descontará del total del servicio.
+                <div style="background-color: #F5E8DE; padding: 25px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                    <h3 style="margin-top: 0; color: #8B4A6B;">Asegura tu reserva con el abono</h3>
+                    <p style="color: #5E4D47; margin: 10px 0 20px 0;">
+                        Para confirmar tu cita, realiza el abono de <strong>$10.000</strong>.
+                        Este monto se descuenta del total del servicio.
                     </p>
-                    <p style="color: #5E4D47; margin: 10px 0;">
-                        <strong>Datos para el abono:</strong><br>
-                        Banco de Chile<br>
-                        Cuenta Vista N° 00-041-00252-37<br>
-                        RUT: 78.040.838-3<br>
-                        Francisca Ortiz Studio<br>
-                        Email: franciscaortizstudio@gmail.com
-                    </p>
-                    <p style="color: #5E4D47; margin: 10px 0;">
-                        Una vez realizado el abono, mándanos el comprobante por WhatsApp
-                        para confirmar tu cita.
+    
+                    <a href="${process.env.SUMUP_PAYMENT_LINK}"
+                        style="display: inline-block; background-color: #A56B82; color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                        💳 PAGAR ABONO AHORA
+                    </a>
+    
+                    <p style="color: #5E4D47; font-size: 13px; margin-top: 15px;">
+                        Pago seguro con tarjeta de débito o crédito vía SumUp.<br>
+                        Recibirás confirmación automática al pagar.
                     </p>
                 </div>
 
