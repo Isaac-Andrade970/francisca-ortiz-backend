@@ -5,6 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const reservasRoutes = require('./src/routes/reservas');
+const resenasRoutes = require('./src/routes/resenas');
 const app = express();
 
 // MIDDLEWARES \\
@@ -27,6 +28,7 @@ app.get('/', (request, response) => {
 });
 
 app.use('/api/reservas', reservasRoutes);
+app.use('/api/resenas', resenasRoutes);
 app.use((request, response) => {
     response.status(404).json({
         error: 'Ruta no encontrada'
