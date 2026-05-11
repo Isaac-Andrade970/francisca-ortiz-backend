@@ -74,7 +74,30 @@ async function listarEventosDelDia(fecha) {
     return response.data.items;
 }
 
+/**
+ * Actualizar un evento existente en Google Calendar
+ */
+async function actualizarEvento(eventoId, nuevaFechaInicio, nuevaFechaFin) {
+    const response = await calendar.events.patch({
+        calendarId: CALENDAR_ID,
+        eventId: eventoId,
+        requestBody: {
+            start: {
+                dateTime: nuevaFechaInicio,
+                timeZone: 'America/Santiago'
+            },
+            end: {
+                dateTime: nuevaFechaFin,
+                timeZone: 'America/Santiago'
+            }
+        }
+    });
+
+    return response.data;
+}
+
 module.exports = {
     crearEvento,
-    listarEventosDelDia
+    listarEventosDelDia,
+    actualizarEvento
 };

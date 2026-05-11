@@ -72,6 +72,19 @@ async function enviarEmailClienta(reserva) {
                     </p>
                 </div>
 
+                <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 1px solid #E8D5C8;">
+                    <h3 style="margin-top: 0; color: #8B4A6B;">¿Necesitas cambiar tu hora?</h3>
+                    <p style="color: #5E4D47; margin: 10px 0 20px 0; font-size: 14px;">
+                        Puedes reagendar tu cita 1 vez con al menos 48 horas de anticipación.
+                    </p>
+    
+                    <a href="http://localhost:5501/reagendar.html?token=${reserva.tokenReagendar}"
+                        style="display: inline-block; background-color: transparent; color: #A56B82; padding: 12px 30px; border-radius: 50px; text-decoration: none; font-weight: 500; border: 2px solid #A56B82; font-size: 14px;">
+                        📅 Reagendar mi cita
+                    </a>
+                </div>
+
+
                 <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="margin-top: 0; color: #8B4A6B;">Política de reagendamiento</h3>
                     <p style="color: #5E4D47; margin: 5px 0;">
@@ -216,8 +229,146 @@ async function enviarEmailResena(datos) {
     return await transporter.sendMail(opciones);
 }
 
+/**
+ * Email a la clienta confirmando el reagendamiento
+ */
+async function enviarEmailReagendamientoClienta(datos) {
+    const fechaFormateada = new Date(datos.nuevaFechaInicio).toLocaleDateString('es-CL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+
+    const horaFormateada = new Date(datos.nuevaFechaInicio).toLocaleTimeString('es-CL', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #A56B82; color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 28px;">Francisca Ortiz</h1>
+                <p style="margin: 5px 0 0 0; letter-spacing: 3px; font-size: 12px;">PELUQUERÍA Y MANICURE</p>
+            </div>
+
+            <div style="background-color: #FBF3EC; padding: 30px; border-radius: 0 0 12px 12px;">
+                <h2 style="color: #2B2B2B; margin-top: 0;">¡Reagendamiento confirmado!</h2>
+                <p style="color: #5E4D47;">Hola ${datos.cliente},</p>
+                <p style="color: #5E4D47;">Tu cita fue actualizada exitosamente. Estos son los nuevos detalles:</p>
+
+                <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Servicio:</strong> ${datos.servicio}</p>
+                    <p style="margin: 5px 0;"><strong>Nueva fecha:</strong> ${fechaFormateada}</p>
+                    <p style="margin: 5px 0;"><strong>Nueva hora:</strong> ${horaFormateada}</p>
+                </div>
+
+                <div style="background-color: #F5E8DE; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #8B4A6B;">⚠️ Importante</h3>
+                    <p style="color: #5E4D47; margin: 5px 0;">
+                        Ya usaste tu único reagendamiento. No se podrán hacer más cambios a esta cita.
+                        En caso de cancelación o ausencia, el abono no se devuelve.
+                    </p>
+                </div>
+
+                <p style="color: #5E4D47; margin-top: 30px;">
+                    <strong>Dirección:</strong> Catan 1254, Quinta Normal<br>
+                    Recuerda llegar puntual (tolerancia máxima de 15 minutos).
+                </p>
+
+                <p style="color: #5E4D47;">
+                    Cualquier duda, escríbenos por WhatsApp. ¡Te esperamos!
+                </p>
+            </div>
+
+            <div style="text-align: center; padding: 20px; color: #5E4D47; font-size: 12px;">
+                Francisca Ortiz · Peluquería y Manicure · Catan 1254, Quinta Normal
+            </div>
+        </div>
+    `;
+
+    return await transporter.sendMail({
+        from: `"Francisca Ortiz Studio" <${process.env.EMAIL_USER}>`,
+        to: datos.email,
+        subject: `Reagendamiento confirmado - ${fechaFormateada}`,
+        html: html
+    });
+}
+
+/**
+ * Email a Francisca avisando del reagendamiento
+ */
+async function enviarEmailReagendamientoFrancisca(datos) {
+    const fechaAnterior = new Date(datos.fechaAnterior).toLocaleDateString('es-CL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+    });
+
+    const horaAnterior = new Date(datos.fechaAnterior).toLocaleTimeString('es-CL', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const fechaNueva = new Date(datos.nuevaFechaInicio).toLocaleDateString('es-CL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+    });
+
+    const horaNueva = new Date(datos.nuevaFechaInicio).toLocaleTimeString('es-CL', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #C08870; color: white; padding: 25px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h2 style="margin: 0;">Reagendamiento de reserva</h2>
+            </div>
+
+            <div style="background-color: #FBF3EC; padding: 30px; border-radius: 0 0 12px 12px;">
+                <p style="color: #5E4D47;">
+                    <strong>${datos.cliente}</strong> reagendó su cita.
+                </p>
+
+                <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #2B2B2B;">Cambios</h3>
+                    <p style="margin: 8px 0; color: #5E4D47;">
+                        <strong>Servicio:</strong> ${datos.servicio}
+                    </p>
+                    <p style="margin: 8px 0; color: #5E4D47; text-decoration: line-through;">
+                        <strong>Antes:</strong> ${fechaAnterior} a las ${horaAnterior}
+                    </p>
+                    <p style="margin: 8px 0; color: #8B4A6B;">
+                        <strong>Ahora:</strong> ${fechaNueva} a las ${horaNueva}
+                    </p>
+                </div>
+
+                <div style="background-color: #F5E8DE; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="color: #5E4D47; margin: 5px 0; font-size: 14px;">
+                        ✅ El evento en tu Google Calendar ya fue actualizado automáticamente.
+                    </p>
+                    <p style="color: #5E4D47; margin: 5px 0; font-size: 14px;">
+                        ℹ️ Esta es su única posibilidad de reagendar. Si pide otro cambio, no será posible desde el sistema.
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return await transporter.sendMail({
+        from: `"Sistema de Reservas" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER,
+        subject: `${datos.cliente} reagendó: ${fechaNueva} ${horaNueva}`,
+        html: html
+    });
+}
+
 module.exports = {
     enviarEmailClienta,
     enviarEmailFrancisca,
-    enviarEmailResena
+    enviarEmailResena,
+    enviarEmailReagendamientoClienta,
+    enviarEmailReagendamientoFrancisca
 };
