@@ -80,4 +80,41 @@ router.post('/', async (request, response) => {
     }
 });
 
+// RUTAS ADMIN \\
+
+// GET /api/resenas/admin/pendientes - Listar reseñas pendientes de aprobar
+router.get('/admin/pendientes', async (request, response) => {
+    try {
+        const resenas = await resenasService.listarResenasPendientes();
+        response.json({ resenas });
+    } catch (error) {
+        console.error('Error al listar pendientes:', error);
+        response.status(500).json({ error: 'Error al cargar reseñas' });
+    }
+});
+
+// PATCH /api/resenas/admin/:id/aprobar - Aprobar una reseña
+router.patch('/admin/:id/aprobar', async (request, response) => {
+    try {
+        const { id } = request.params;
+        await resenasService.aprobarResena(id);
+        response.json({ mensaje: 'Reseña aprobada' });
+    } catch (error) {
+        console.error('Error al aprobar:', error);
+        response.status(500).json({ error: 'Error al aprobar reseña' });
+    }
+});
+
+// DELETE /api/resenas/admin/:id - Rechazar (eliminar) una reseña
+router.delete('/admin/:id', async (request, response) => {
+    try {
+        const { id } = request.params;
+        await resenasService.rechazarResena(id);
+        response.json({ mensaje: 'Reseña rechazada' });
+    } catch (error) {
+        console.error('Error al rechazar:', error);
+        response.status(500).json({ error: 'Error al rechazar reseña' });
+    }
+});
+
 module.exports = router;
