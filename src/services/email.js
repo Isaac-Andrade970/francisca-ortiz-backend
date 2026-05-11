@@ -160,7 +160,64 @@ async function enviarEmailFrancisca(reserva) {
     return await transporter.sendMail(opciones);
 }
 
+/**
+ * Envía email pidiendo reseña a la clienta después del servicio
+ */
+async function enviarEmailResena(datos) {
+    const linkResena = `http://localhost:5500/califica-tu-servicio.html?token=${datos.tokenReagendar}`;
+    // ⚠️ Después cambiamos localhost:5500 por el dominio real cuando hagamos deploy
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #A56B82; color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                <h1 style="margin: 0; font-size: 28px;">Francisca Ortiz</h1>
+                <p style="margin: 5px 0 0 0; letter-spacing: 3px; font-size: 12px;">PELUQUERÍA Y MANICURE</p>
+            </div>
+
+            <div style="background-color: #FBF3EC; padding: 30px; border-radius: 0 0 12px 12px;">
+                <h2 style="color: #2B2B2B; margin-top: 0;">¿Cómo te quedó tu ${datos.servicio}?</h2>
+                <p style="color: #5E4D47;">Hola ${datos.cliente},</p>
+                <p style="color: #5E4D47;">
+                    Espero que hayas quedado feliz con tu servicio. Me encantaría 
+                    saber tu opinión, me ayuda muchísimo a mejorar y también a que 
+                    otras personas conozcan mi trabajo.
+                </p>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${linkResena}"
+                       style="display: inline-block; background-color: #A56B82; color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                        ⭐ DEJAR MI RESEÑA
+                    </a>
+                </div>
+
+                <p style="color: #5E4D47; font-size: 13px; text-align: center;">
+                    Solo te tomará 1 minuto. ¡Gracias!
+                </p>
+
+                <p style="color: #5E4D47; margin-top: 30px;">
+                    Un abrazo,<br>
+                    Francisca
+                </p>
+            </div>
+
+            <div style="text-align: center; padding: 20px; color: #5E4D47; font-size: 12px;">
+                Francisca Ortiz · Peluquería y Manicure · Catan 1254, Quinta Normal
+            </div>
+        </div>
+    `;
+
+    const opciones = {
+        from: `"Francisca Ortiz Studio" <${process.env.EMAIL_USER}>`,
+        to: datos.email,
+        subject: `${datos.cliente}, ¿cómo te quedó tu servicio?`,
+        html: html
+    };
+
+    return await transporter.sendMail(opciones);
+}
+
 module.exports = {
     enviarEmailClienta,
-    enviarEmailFrancisca
+    enviarEmailFrancisca,
+    enviarEmailResena
 };

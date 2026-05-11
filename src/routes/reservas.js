@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const googleCalendar = require('../services/googleCalendar');
+const reservasService = require('../services/reservas');
 const email = require('../services/email');
 
 // RUTA: GET /api/reservas/disponibilidad \\
@@ -61,7 +62,7 @@ router.post('/', async (request, response) => {
             }
         }
 
-        const evento = await googleCalendar.crearEvento(reserva);
+        const resultado = await reservasService.crearReservaCompleta(reserva);
 
         try {
             await Promise.all([
@@ -77,9 +78,9 @@ router.post('/', async (request, response) => {
         response.status(201).json({
             mensaje: 'Reserva creada exitosamente',
             evento: {
-                id: evento.id,
-                inicio: evento.start.dateTime,
-                fin: evento.end.dateTime
+                id: resultado.eventoId,
+                inicio: resultado.fechaInicio,
+                fin: resultado.fechaFin
             }
         });
 
