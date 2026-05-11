@@ -6,6 +6,8 @@ require('dotenv').config();
 
 const reservasRoutes = require('./src/routes/reservas');
 const resenasRoutes = require('./src/routes/resenas');
+const reagendarRoutes = require('./src/routes/reagendar');
+const tareas = require('./src/services/tareas');
 const app = express();
 
 // MIDDLEWARES \\
@@ -29,6 +31,7 @@ app.get('/', (request, response) => {
 
 app.use('/api/reservas', reservasRoutes);
 app.use('/api/resenas', resenasRoutes);
+app.use('/api/reagendar', reagendarRoutes);
 app.use((request, response) => {
     response.status(404).json({
         error: 'Ruta no encontrada'
@@ -45,3 +48,6 @@ app.listen(PORT, () => {
     console.log(`  http://localhost:${PORT}`);
     console.log('====================================');
 });
+
+// Iniciar tareas programadas
+tareas.iniciarTareas();

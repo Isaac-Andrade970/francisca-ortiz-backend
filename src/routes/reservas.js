@@ -64,10 +64,15 @@ router.post('/', async (request, response) => {
 
         const resultado = await reservasService.crearReservaCompleta(reserva);
 
+        const reservaConToken = {
+            ...reserva,
+            tokenReagendar: resultado.tokenReagendar
+        };
+
         try {
             await Promise.all([
-                email.enviarEmailClienta(reserva),
-                email.enviarEmailFrancisca(reserva)
+                email.enviarEmailClienta(reservaConToken),
+                email.enviarEmailFrancisca(reservaConToken)
             ]);
             console.log('✅ Emails de confirmación enviados');
         } catch (errorEmail) {
