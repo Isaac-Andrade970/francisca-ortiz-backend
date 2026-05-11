@@ -43,8 +43,40 @@ async function obtenerResena(id) {
     return { id: doc.id, ...doc.data() };
 }
 
+/**
+ * Listar reseñas pendientes de aprobación (para admin)
+ */
+async function listarResenasPendientes() {
+    const snapshot = await db.collection('resenas')
+        .where('aprobada', '==', false)
+        .orderBy('fechaCreacion', 'desc')
+        .get();
+
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+/**
+ * Aprobar una reseña (admin)
+ */
+async function aprobarResena(id) {
+    await db.collection('resenas').doc(id).update({
+        aprobada: true,
+        fechaAprobacion: new Date()
+    });
+}
+
+/**
+ * Rechazar (eliminar) una reseña
+ */
+async function rechazarResena(id) {
+    await db.collection('resenas').doc(id).delete();
+}
+
 module.exports = {
     crearResena,
     listarResenasAprobadas,
-    obtenerResena
+    obtenerResena,
+    listarResenasPendientes,
+    aprobarResena,
+    rechazarResena
 };
