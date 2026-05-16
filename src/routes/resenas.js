@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const resenasService = require('../services/resenas');
 const reservasService = require('../services/reservas');
+const { protegerAdmin } = require('../services/auth');
 
 // GET /api/resenas - Listar reseñas aprobadas (pública)
 router.get('/', async (request, response) => {
@@ -83,7 +84,7 @@ router.post('/', async (request, response) => {
 // RUTAS ADMIN \\
 
 // GET /api/resenas/admin/pendientes - Listar reseñas pendientes de aprobar
-router.get('/admin/pendientes', async (request, response) => {
+router.get('/admin/pendientes', protegerAdmin, async (request, response) => {
     try {
         const resenas = await resenasService.listarResenasPendientes();
         response.json({ resenas });
@@ -94,7 +95,7 @@ router.get('/admin/pendientes', async (request, response) => {
 });
 
 // PATCH /api/resenas/admin/:id/aprobar - Aprobar una reseña
-router.patch('/admin/:id/aprobar', async (request, response) => {
+router.patch('/admin/:id/aprobar', protegerAdmin, async (request, response) => {
     try {
         const { id } = request.params;
         await resenasService.aprobarResena(id);
@@ -106,7 +107,7 @@ router.patch('/admin/:id/aprobar', async (request, response) => {
 });
 
 // DELETE /api/resenas/admin/:id - Rechazar (eliminar) una reseña
-router.delete('/admin/:id', async (request, response) => {
+router.delete('/admin/:id', protegerAdmin, async (request, response) => {
     try {
         const { id } = request.params;
         await resenasService.rechazarResena(id);
