@@ -29,7 +29,12 @@ async function procesarReservasPasadas() {
 
         for (const doc of snapshot.docs) {
             const reserva = { id: doc.id, ...doc.data() };
-            
+
+            // NO procesar si la reserva fue cancelada
+            if (reserva.estado === 'cancelada') {
+                continue;
+            }
+
             // Firestore guarda timestamps como objetos especiales
             const fechaFin = reserva.fechaFin.toDate ? reserva.fechaFin.toDate() : reserva.fechaFin;
 
