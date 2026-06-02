@@ -4,67 +4,96 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD;
 const TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET;
 
 /**
- * Verifica la contraseña y genera un token si es correcta.
+ * Verifica la contraseña y genera un token con el rol correspondiente.
  * @param {string} password - Contraseña ingresada
- * @returns {string|null} - Token JWT si es correcta, null si no
+ * @returns {{token: string, rol: string}|null}
  */
 function login(password) {
-    if (password !== ADMIN_PASSWORD) {
-        return null;
+    let rol = null;
+
+    // El superadmin se chequea primero (es el de mayor privilegio)
+    if (SUPERADMIN_PASSWORD && password === SUPERADMIN_PASSWORD) {
+        rol = 'superadmin';
+    } else if (password === ADMIN_PASSWORD) {
+        rol = 'admin';
     }
 
-    // Generar token que expira en 8 horas
+    if (!rol) return null;
+
     const token = jwt.sign(
-        { rol: 'admin' },        // datos dentro del token
-        TOKEN_SECRET,            // clave para firmarlo
-        { expiresIn: '8h' }      // expira en 8 horas
+        { rol: rol },            // el rol queda guardado dentro del token
+        TOKEN_SECRET,
+        { expiresIn: '8h' }
     );
 
-    return token;
+    return { token, rol };
 }
 
 /**
- * Verifica si un token es válido.
- * @param {string} token - Token a verificar
- * @returns {boolean} - true si es válido
+ * Verifica un token y devuelve sus datos (o null si es inválido).
+ * @param {string} token
+ * @returns {object|null} - { rol } si es válido, null si no
  */
 function verificarToken(token) {
     try {
-        jwt.verify(token, TOKEN_SECRET);
-        return true;
+        return jwt.verify(token, TOKEN_SECRET); // devuelve el payload { rol, ... }
     } catch (error) {
-        // Si el token es inválido o expiró, jwt.verify lanza error
-        return false;
+        return null;
     }
 }
 
 /**
- * Middleware para proteger rutas admin.
- * Se usa así: router.get('/ruta', protegerAdmin, (req, res) => {...})
+ * Saca el token del header Authorization: "Bearer xxxx"
+ */
+function extraerToken(request) {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+    return authHeader.split(' ')[1];
+}
+
+/**
+ * Middleware: deja pasar a CUALQUIER admin válido (admin o superadmin).
+ * Para todo lo del día a día.
  */
 function protegerAdmin(request, response, next) {
-    // El token viene en el header Authorization: "Bearer xxxxx"
-    const authHeader = request.headers.authorization;
+    const token = extraerToken(request);
+    const datos = token ? verificarToken(token) : null;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return response.status(401).json({ error: 'No autorizado' });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    if (!verificarToken(token)) {
+    if (!datos) {
         return response.status(401).json({ error: 'Sesión inválida o expirada' });
     }
 
-    // Token válido, dejar continuar
+    request.usuario = datos; // { rol: 'admin' | 'superadmin' }
+    next();
+}
+
+/**
+ * Middleware: SOLO deja pasar al superadmin.
+ * Para operaciones peligrosas (borrados permanentes, etc.).
+ */
+function protegerSuperadmin(request, response, next) {
+    const token = extraerToken(request);
+    const datos = token ? verificarToken(token) : null;
+
+    if (!datos) {
+        return response.status(401).json({ error: 'Sesión inválida o expirada' });
+    }
+
+    if (datos.rol !== 'superadmin') {
+        return response.status(403).json({ error: 'Esta acción requiere permisos de superadmin' });
+    }
+
+    request.usuario = datos;
     next();
 }
 
 module.exports = {
     login,
     verificarToken,
-    protegerAdmin
+    protegerAdmin,
+    protegerSuperadmin
 };

@@ -10,15 +10,16 @@ router.post('/login', (request, response) => {
         return response.status(400).json({ error: 'Falta la contraseña' });
     }
 
-    const token = authService.login(password);
+    const resultado = authService.login(password);
 
-    if (!token) {
+    if (!resultado) {
         return response.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
     response.json({
         mensaje: 'Login exitoso',
-        token: token
+        token: resultado.token,
+        rol: resultado.rol
     });
 });
 
