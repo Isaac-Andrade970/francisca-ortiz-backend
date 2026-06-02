@@ -53,6 +53,17 @@ router.post('/', async (request, response) => {
     try {
         const reserva = request.body;
 
+        // FILTRO ANTI-SPAM (honeypot)
+        // El campo "website" es invisible para humanos. Si llega con contenido,
+        // significa que un bot llenó automáticamente todos los campos del form.
+        // Devolvemos "éxito" mentiroso al bot y no creamos nada.
+        if (reserva.website && reserva.website.trim() !== '') {
+            console.warn('🍯 Intento de spam detectado y bloqueado (honeypot)');
+            return response.status(201).json({
+                mensaje: 'Reserva creada exitosamente'
+            });
+        }
+
         const camposRequeridos = ['cliente', 'telefono', 'email', 'servicio', 'inicio', 'fin'];
         for (const campo of camposRequeridos) {
             if (!reserva[campo]) {
