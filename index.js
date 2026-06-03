@@ -34,9 +34,6 @@ app.get('/', (request, response) => {
 app.use('/api/reservas', reservasRoutes);
 app.use('/api/resenas', resenasRoutes);
 app.use('/api/reagendar', reagendarRoutes);
-
-console.log('servicios export:', typeof require('./src/routes/servicios'));
-
 app.use('/api/servicios', serviciosRoutes);
 app.use('/api/auth', authRoutes);
 app.use((request, response) => {
