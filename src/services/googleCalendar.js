@@ -5,10 +5,17 @@ require('dotenv').config();
 
 // AUTENTICACION \\
 
-const auth = new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_CREDENTIALS_PATH,
-    scopes: ['https://www.googleapis.com/auth/calendar']
-});
+const auth = process.env.GOOGLE_CREDENTIALS_JSON
+    ? new google.auth.GoogleAuth({
+        // PRODUCCIÓN: credenciales desde variable de entorno
+        credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON),
+        scopes: ['https://www.googleapis.com/auth/calendar']
+      })
+    : new google.auth.GoogleAuth({
+        // LOCAL: credenciales desde el archivo
+        keyFile: process.env.GOOGLE_CREDENTIALS_PATH,
+        scopes: ['https://www.googleapis.com/auth/calendar']
+      });
 
 const calendar = google.calendar({ version: 'v3', auth });
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID;
