@@ -9,7 +9,7 @@ require('dotenv').config();
 
 // URL base del sitio. CAMBIAR SOLO ESTA LÍNEA cuando se haga deploy
 // (poner el dominio real, ej: 'https://franciscaortiz.cl')
-const URL_SITIO = 'http://localhost:5501';
+const URL_SITIO = process.env.URL_SITIO || 'http://localhost:5501';
 
 // Paleta de colores (la misma del sitio web)
 const COLOR = {
