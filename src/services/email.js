@@ -151,19 +151,19 @@ function formatearFechaCorta(fecha) {
 
 /**
  * Envía email de confirmación a la clienta que reservó.
+ * El abono ya fue pagado antes de llegar aquí, así que el correo lo confirma.
  * @param {Object} reserva - Datos de la reserva
  */
 async function enviarEmailClienta(reserva) {
     const fechaFormateada = formatearFechaLarga(reserva.inicio);
     const horaFormateada = formatearHora(reserva.inicio);
 
-    const linkPago = process.env.SUMUP_PAYMENT_LINK;
     const linkReagendar = `${URL_SITIO}/reagendar.html?token=${reserva.tokenReagendar}`;
 
     const contenido = `
-        <h2 style="color: ${COLOR.textoOscuro}; margin: 0 0 8px 0; font-family: Georgia, serif; font-weight: normal; font-size: 26px;">¡Reserva recibida!</h2>
+        <h2 style="color: ${COLOR.textoOscuro}; margin: 0 0 8px 0; font-family: Georgia, serif; font-weight: normal; font-size: 26px;">¡Reserva confirmada!</h2>
         <p style="color: ${COLOR.textoSuave}; font-size: 15px; margin: 0 0 6px 0;">Hola ${reserva.cliente},</p>
-        <p style="color: ${COLOR.textoSuave}; font-size: 15px; margin: 0 0 28px 0;">Recibimos tu solicitud de reserva. Estos son los detalles:</p>
+        <p style="color: ${COLOR.textoSuave}; font-size: 15px; margin: 0 0 28px 0;">Tu abono fue recibido y tu cita quedó agendada. Estos son los detalles:</p>
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: ${COLOR.cremaClara}; border-radius: 12px; margin-bottom: 28px;">
             <tr><td style="padding: 24px 26px;">
@@ -178,13 +178,9 @@ async function enviarEmailClienta(reserva) {
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: ${COLOR.crema}; border-radius: 12px; margin-bottom: 24px;">
             <tr><td style="padding: 28px 26px; text-align: center;">
-                <h3 style="margin: 0 0 8px 0; color: ${COLOR.rosaOscuro}; font-family: Georgia, serif; font-weight: normal; font-size: 20px;">Asegura tu reserva con el abono</h3>
-                <p style="color: ${COLOR.textoSuave}; margin: 0 0 22px 0; font-size: 14px;">
-                    Para confirmar tu cita, realiza el abono de <strong>$10.000</strong>.<br>Este monto se descuenta del total del servicio.
-                </p>
-                ${botonPrimario('💳 Pagar abono ahora', linkPago)}
-                <p style="color: ${COLOR.textoSuave}; font-size: 12px; margin: 18px 0 0 0;">
-                    Pago seguro con tarjeta vía SumUp.
+                <h3 style="margin: 0 0 8px 0; color: ${COLOR.rosaOscuro}; font-family: Georgia, serif; font-weight: normal; font-size: 20px;">Abono recibido ✓</h3>
+                <p style="color: ${COLOR.textoSuave}; margin: 0; font-size: 14px;">
+                    Recibimos tu abono de <strong>$10.000</strong>, así que tu cita está <strong>confirmada</strong>.<br>Este monto se descuenta del total del servicio.
                 </p>
             </td></tr>
         </table>
@@ -269,8 +265,7 @@ async function enviarEmailFrancisca(reserva) {
             <tr><td style="padding: 20px 26px;">
                 <p style="color: ${COLOR.textoSuave}; margin: 0; font-size: 14px; line-height: 1.6;">
                     La reserva ya está agendada en tu Google Calendar como "Reservas Studio".
-                    La clienta ya recibió el link de pago automáticamente.
-                    Espera la notificación de SumUp y luego cambia <strong>[PENDIENTE PAGO]</strong> por <strong>[CONFIRMADA]</strong> en el evento.
+                    La clienta <strong>ya pagó el abono de $10.000</strong>, así que la cita está confirmada.
                 </p>
             </td></tr>
         </table>

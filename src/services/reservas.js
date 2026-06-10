@@ -164,11 +164,39 @@ async function obtenerReservaParaReagendar(token) {
     };
 }
 
+/**
+ * Guarda una reserva que está esperando el pago del abono.
+ */
+async function guardarReservaPendiente(referencia, datos, checkoutId) {
+    await db.collection('reservas_pendientes').doc(referencia).set({
+        ...datos,
+        checkoutId: checkoutId,
+        estado: 'esperando_pago',
+        fechaCreacion: new Date()
+    });
+}
+
+async function obtenerReservaPendiente(referencia) {
+    const doc = await db.collection('reservas_pendientes').doc(referencia).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() };
+}
+
+async function marcarPendienteProcesada(referencia) {
+    await db.collection('reservas_pendientes').doc(referencia).update({
+        estado: 'procesada',
+        fechaProcesada: new Date()
+    });
+}
+
 module.exports = {
     crearReservaCompleta,
     obtenerReservaPorToken,
     listarReservasParaResena,
     marcarEmailResenaEnviado,
     reagendarReserva,
-    obtenerReservaParaReagendar
+    obtenerReservaParaReagendar,
+    guardarReservaPendiente,
+    obtenerReservaPendiente,
+    marcarPendienteProcesada
 };
