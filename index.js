@@ -10,6 +10,7 @@ const reagendarRoutes = require('./src/routes/reagendar');
 const tareas = require('./src/services/tareas');
 const serviciosRoutes = require('./src/routes/servicios');
 const productosRoutes = require('./src/routes/productos');
+const pagosRoutes = require('./src/routes/pagos');
 const authRoutes = require('./src/routes/auth');
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/resenas', resenasRoutes);
 app.use('/api/reagendar', reagendarRoutes);
 app.use('/api/servicios', serviciosRoutes);
 app.use('/api/productos', productosRoutes);
+app.use('/api/pagos', pagosRoutes);
 app.use('/api/auth', authRoutes);
 app.use((request, response) => {
     response.status(404).json({
