@@ -5,7 +5,7 @@ require('dotenv').config();
 const SUMUP_API = 'https://api.sumup.com/v0.1';
 
 // Crea un checkout y devuelve los datos (incluye hosted_checkout_url)
-async function crearCheckout({ monto, referencia, descripcion, redirectUrl }) {
+async function crearCheckout({ monto, referencia, descripcion, redirectUrl, returnUrl }) {
     const respuesta = await fetch(`${SUMUP_API}/checkouts`, {
         method: 'POST',
         headers: {
@@ -19,7 +19,8 @@ async function crearCheckout({ monto, referencia, descripcion, redirectUrl }) {
             merchant_code: process.env.SUMUP_MERCHANT_CODE,
             description: descripcion,
             hosted_checkout: { enabled: true },
-            redirect_url: redirectUrl
+            redirect_url: redirectUrl,   // a dónde va el NAVEGADOR del cliente
+            return_url: returnUrl        // a dónde SumUp manda el WEBHOOK (servidor)
         })
     });
 
@@ -31,7 +32,7 @@ async function crearCheckout({ monto, referencia, descripcion, redirectUrl }) {
     return respuesta.json();
 }
 
-// Consulta el estado de un checkout (para verificar si se pagó)
+// Consulta el estado de un checkout
 async function obtenerCheckout(checkoutId) {
     const respuesta = await fetch(`${SUMUP_API}/checkouts/${checkoutId}`, {
         headers: { 'Authorization': `Bearer ${process.env.SUMUP_API_KEY}` }
