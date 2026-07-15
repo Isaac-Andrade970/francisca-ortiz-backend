@@ -30,6 +30,9 @@ const COLOR = {
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
+    // Fuerza IPv4: algunos hosts no tienen salida IPv6 y smtp.gmail.com
+    // también resuelve a IPv6, causando ENETUNREACH/timeout al conectar.
+    family: 4,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD

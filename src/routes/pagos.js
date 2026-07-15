@@ -17,46 +17,63 @@ const sumup = require('../services/sumup');
  * La usan tanto /confirmar (cliente vuelve) como /webhook (aviso de SumUp).
  */
 async function procesarReservaPendiente(referencia) {
-    const pendiente = await reservasService.obtenerReservaPendiente(referencia);
-    if (!pendiente) return { estado: 'no_encontrada' };
+    // Reclamo atómico: si /confirmar y /webhook llegan casi al mismo tiempo,
+    // solo uno de los dos logra pasar de 'esperando_pago' a 'procesando'.
+    const reclamo = await reservasService.reclamarReservaPendiente(referencia);
 
-    // Ya se procesó antes: no duplicar
-    if (pendiente.estado === 'procesada') {
-        return { estado: 'confirmada', reserva: pendiente };
+    if (reclamo.estado === 'no_encontrada') return { estado: 'no_encontrada' };
+
+    // Ya se procesó antes (o se está procesando ahora mismo en otra llamada): no duplicar
+    if (reclamo.estado === 'procesada') {
+        return { estado: 'confirmada', reserva: reclamo.datos };
+    }
+    if (reclamo.estado === 'procesando') {
+        return { estado: 'procesando' };
     }
 
-    // Consultamos el estado real del pago en SumUp
-    const checkout = await sumup.obtenerCheckout(pendiente.checkoutId);
-    if (checkout.status !== 'PAID') {
-        return { estado: 'no_pagado', detalle: checkout.status };
-    }
+    const pendiente = reclamo.datos;
 
-    // PAGADO → creamos la reserva de verdad
-    const datos = {
-        cliente: pendiente.cliente,
-        telefono: pendiente.telefono,
-        email: pendiente.email,
-        servicio: pendiente.servicio,
-        notas: pendiente.notas || '',
-        inicio: pendiente.inicio,
-        fin: pendiente.fin
-    };
-
-    const resultado = await reservasService.crearReservaCompleta(datos);
-
-    const reservaConToken = { ...datos, tokenReagendar: resultado.tokenReagendar };
     try {
-        await Promise.all([
+        // Consultamos el estado real del pago en SumUp
+        const checkout = await sumup.obtenerCheckout(pendiente.checkoutId);
+        if (checkout.status !== 'PAID') {
+            await reservasService.revertirReservaPendiente(referencia);
+            return { estado: 'no_pagado', detalle: checkout.status };
+        }
+
+        // PAGADO → creamos la reserva de verdad
+        const datos = {
+            cliente: pendiente.cliente,
+            telefono: pendiente.telefono,
+            email: pendiente.email,
+            servicio: pendiente.servicio,
+            notas: pendiente.notas || '',
+            inicio: pendiente.inicio,
+            fin: pendiente.fin
+        };
+
+        const resultado = await reservasService.crearReservaCompleta(datos);
+
+        const reservaConToken = { ...datos, tokenReagendar: resultado.tokenReagendar };
+        const [resultadoClienta, resultadoFrancisca] = await Promise.allSettled([
             email.enviarEmailClienta(reservaConToken),
             email.enviarEmailFrancisca(reservaConToken)
         ]);
-    } catch (errorEmail) {
-        console.error('Error al enviar emails:', errorEmail.message);
+        if (resultadoClienta.status === 'rejected') {
+            console.error('Error al enviar email a la clienta:', resultadoClienta.reason.message);
+        }
+        if (resultadoFrancisca.status === 'rejected') {
+            console.error('Error al enviar email a Francisca:', resultadoFrancisca.reason.message);
+        }
+
+        await reservasService.marcarPendienteProcesada(referencia);
+
+        return { estado: 'confirmada', reserva: datos };
+    } catch (error) {
+        // Si falló creando la reserva, liberamos el candado para poder reintentar después
+        await reservasService.revertirReservaPendiente(referencia);
+        throw error;
     }
-
-    await reservasService.marcarPendienteProcesada(referencia);
-
-    return { estado: 'confirmada', reserva: datos };
 }
 
 // Inicia el pago: crea el checkout y guarda la reserva como pendiente

@@ -182,6 +182,41 @@ async function obtenerReservaPendiente(referencia) {
     return { id: doc.id, ...doc.data() };
 }
 
+/**
+ * Reclama una reserva pendiente de forma atómica: si aún no se está procesando,
+ * la marca como 'procesando' y la devuelve. Si ya está 'procesando' o 'procesada',
+ * devuelve ese estado sin tocar nada.
+ * Esto evita que /confirmar y /webhook (que pueden llegar casi al mismo tiempo)
+ * creen la reserva y el evento de Calendar dos veces.
+ */
+async function reclamarReservaPendiente(referencia) {
+    const ref = db.collection('reservas_pendientes').doc(referencia);
+
+    return await db.runTransaction(async (tx) => {
+        const doc = await tx.get(ref);
+        if (!doc.exists) return { estado: 'no_encontrada' };
+
+        const datos = doc.data();
+        if (datos.estado === 'procesada' || datos.estado === 'procesando') {
+            return { estado: datos.estado, datos: { id: doc.id, ...datos } };
+        }
+
+        tx.update(ref, { estado: 'procesando' });
+        return { estado: 'reclamada', datos: { id: doc.id, ...datos } };
+    });
+}
+
+/**
+ * Revierte el estado de una reserva pendiente a 'esperando_pago'.
+ * Se usa cuando se reclamó para procesar pero el pago resultó no estar PAID,
+ * o si falló la creación de la reserva, para permitir reintentarlo después.
+ */
+async function revertirReservaPendiente(referencia) {
+    await db.collection('reservas_pendientes').doc(referencia).update({
+        estado: 'esperando_pago'
+    });
+}
+
 async function marcarPendienteProcesada(referencia) {
     await db.collection('reservas_pendientes').doc(referencia).update({
         estado: 'procesada',
@@ -198,5 +233,7 @@ module.exports = {
     obtenerReservaParaReagendar,
     guardarReservaPendiente,
     obtenerReservaPendiente,
+    reclamarReservaPendiente,
+    revertirReservaPendiente,
     marcarPendienteProcesada
 };

@@ -1,5 +1,10 @@
 // SERVIDOR PRINCIPAL \\
 
+const dns = require('dns');
+// Algunos hosts (ej. Render) no tienen salida IPv6, y smtp.gmail.com resuelve
+// también a IPv6, causando ENETUNREACH. Forzamos IPv4 primero para toda la app.
+dns.setDefaultResultOrder('ipv4first');
+
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
