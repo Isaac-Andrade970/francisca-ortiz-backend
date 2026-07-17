@@ -2,13 +2,17 @@
 
 // Maneja el envío de emails de confirmación de reservas.
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 require('dotenv').config();
 
 // CONFIGURACIÓN CENTRAL \\
 
-
 const URL_SITIO = process.env.URL_SITIO || 'http://localhost:5501';
+
+// Correo remitente (dominio propio verificado en Resend) y a dónde le llegan
+// los avisos de nueva reserva a Francisca.
+const EMAIL_REMITENTE = process.env.EMAIL_REMITENTE || 'reservas@franciscaortizstudio.cl';
+const EMAIL_FRANCISCA = process.env.EMAIL_FRANCISCA || process.env.EMAIL_USER;
 
 // Paleta de colores (la misma del sitio web)
 const COLOR = {
@@ -24,20 +28,22 @@ const COLOR = {
     blanco: '#FFFFFF'
 };
 
-// CONFIGURACIÓN DEL TRANSPORTADOR \\
+// CONFIGURACIÓN DEL CLIENTE DE ENVÍO \\
 
-// Esto crea la "conexión" con Gmail. Usa la cuenta y contraseña de aplicación del .env
+// Se envía vía API HTTPS de Resend (no SMTP), porque Gmail bloquea/ignora
+// conexiones SMTP directas desde IPs de hosting compartido como Render.
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    // Fuerza IPv4: algunos hosts no tienen salida IPv6 y smtp.gmail.com
-    // también resuelve a IPv6, causando ENETUNREACH/timeout al conectar.
-    family: 4,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
+// Resend no lanza excepción si el envío falla, devuelve { data, error }.
+// La convertimos a una excepción para mantener el mismo comportamiento
+// que antes (Promise.allSettled en pagos.js espera que rechace si falla).
+async function enviarCorreo(opciones) {
+    const resultado = await resend.emails.send(opciones);
+    if (resultado.error) {
+        throw new Error(resultado.error.message || JSON.stringify(resultado.error));
     }
-});
+    return resultado.data;
+}
 
 // COMPONENTES REUTILIZABLES \\
 
@@ -218,13 +224,13 @@ async function enviarEmailClienta(reserva) {
     `;
 
     const opciones = {
-        from: `"Francisca Ortiz Studio" <${process.env.EMAIL_USER}>`,
+        from: `Francisca Ortiz Studio <${EMAIL_REMITENTE}>`,
         to: reserva.email,
         subject: `Tu reserva en Francisca Ortiz Studio - ${fechaFormateada}`,
         html: plantilla(contenido)
     };
 
-    return await transporter.sendMail(opciones);
+    return await enviarCorreo(opciones);
 }
 
 /**
@@ -275,13 +281,13 @@ async function enviarEmailFrancisca(reserva) {
     `;
 
     const opciones = {
-        from: `"Sistema de Reservas" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER,
+        from: `Sistema de Reservas <${EMAIL_REMITENTE}>`,
+        to: EMAIL_FRANCISCA,
         subject: `Nueva reserva: ${reserva.cliente} - ${fechaFormateada} ${horaFormateada}`,
         html: plantilla(contenido)
     };
 
-    return await transporter.sendMail(opciones);
+    return await enviarCorreo(opciones);
 }
 
 /**
@@ -315,13 +321,13 @@ async function enviarEmailResena(datos) {
     `;
 
     const opciones = {
-        from: `"Francisca Ortiz Studio" <${process.env.EMAIL_USER}>`,
+        from: `Francisca Ortiz Studio <${EMAIL_REMITENTE}>`,
         to: datos.email,
         subject: `${datos.cliente}, ¿cómo te quedó tu servicio?`,
         html: plantilla(contenido)
     };
 
-    return await transporter.sendMail(opciones);
+    return await enviarCorreo(opciones);
 }
 
 /**
@@ -366,8 +372,8 @@ async function enviarEmailReagendamientoClienta(datos) {
         </p>
     `;
 
-    return await transporter.sendMail({
-        from: `"Francisca Ortiz Studio" <${process.env.EMAIL_USER}>`,
+    return await enviarCorreo({
+        from: `Francisca Ortiz Studio <${EMAIL_REMITENTE}>`,
         to: datos.email,
         subject: `Reagendamiento confirmado - ${fechaFormateada}`,
         html: plantilla(contenido)
@@ -417,9 +423,9 @@ async function enviarEmailReagendamientoFrancisca(datos) {
         </table>
     `;
 
-    return await transporter.sendMail({
-        from: `"Sistema de Reservas" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER,
+    return await enviarCorreo({
+        from: `Sistema de Reservas <${EMAIL_REMITENTE}>`,
+        to: EMAIL_FRANCISCA,
         subject: `${datos.cliente} reagendó: ${fechaNueva} ${horaNueva}`,
         html: plantilla(contenido)
     });
