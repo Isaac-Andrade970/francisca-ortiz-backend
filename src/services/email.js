@@ -234,6 +234,62 @@ async function enviarEmailClienta(reserva) {
 }
 
 /**
+ * Envía recordatorio a la clienta 48h antes de su cita.
+ * Incluye botón de reagendar porque a las 48h todavía alcanza a hacerlo.
+ * @param {Object} datos - { cliente, email, servicio, inicio, tokenReagendar }
+ */
+async function enviarEmailRecordatorio(datos) {
+    const fechaFormateada = formatearFechaLarga(datos.inicio);
+    const horaFormateada = formatearHora(datos.inicio);
+
+    const linkReagendar = `${URL_SITIO}/reagendar.html?token=${datos.tokenReagendar}`;
+
+    const contenido = `
+        <h2 style="color: ${COLOR.textoOscuro}; margin: 0 0 8px 0; font-family: Georgia, serif; font-weight: normal; font-size: 26px;">¡Tu cita se acerca!</h2>
+        <p style="color: ${COLOR.textoSuave}; font-size: 15px; margin: 0 0 6px 0;">Hola ${datos.cliente},</p>
+        <p style="color: ${COLOR.textoSuave}; font-size: 15px; margin: 0 0 28px 0;">Te recordamos que en 2 días tienes hora con nosotras. Estos son los detalles:</p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: ${COLOR.cremaClara}; border-radius: 12px; margin-bottom: 24px;">
+            <tr><td style="padding: 24px 26px;">
+                ${filaDetalle('Servicio', datos.servicio)}
+                ${filaDetalle('Fecha', fechaFormateada)}
+                <p style="margin: 0; color: ${COLOR.textoSuave};">
+                    <span style="color: ${COLOR.cobre}; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 2px;">Hora</span>
+                    <strong style="color: ${COLOR.textoOscuro}; font-size: 16px;">${horaFormateada}</strong>
+                </p>
+            </td></tr>
+        </table>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: ${COLOR.crema}; border-radius: 12px; margin-bottom: 24px;">
+            <tr><td style="padding: 26px; text-align: center;">
+                <h3 style="margin: 0 0 8px 0; color: ${COLOR.rosaOscuro}; font-family: Georgia, serif; font-weight: normal; font-size: 19px;">¿No vas a poder llegar?</h3>
+                <p style="color: ${COLOR.textoSuave}; margin: 0 0 20px 0; font-size: 14px;">
+                    Esta es tu última oportunidad para reagendar (se necesitan al menos 48 horas de anticipación).
+                </p>
+                ${botonSecundario('📅 Reagendar mi cita', linkReagendar)}
+            </td></tr>
+        </table>
+
+        <p style="color: ${COLOR.textoSuave}; font-size: 14px; line-height: 1.7; margin: 0 0 8px 0;">
+            <strong>Dirección:</strong> Catán 1254, Quinta Normal<br>
+            Recuerda llegar puntual (tolerancia máxima de 15 minutos).
+        </p>
+        <p style="color: ${COLOR.textoSuave}; font-size: 14px; margin: 0;">
+            Cualquier duda, escríbenos por WhatsApp. ¡Te esperamos!
+        </p>
+    `;
+
+    const opciones = {
+        from: `Francisca Ortiz Studio <${EMAIL_REMITENTE}>`,
+        to: datos.email,
+        subject: `Recordatorio: tu cita es el ${fechaFormateada}`,
+        html: plantilla(contenido)
+    };
+
+    return await enviarCorreo(opciones);
+}
+
+/**
  * Envía email de aviso a Francisca cuando alguien reserva.
  * @param {Object} reserva - Datos de la reserva
  */
@@ -433,6 +489,7 @@ async function enviarEmailReagendamientoFrancisca(datos) {
 
 module.exports = {
     enviarEmailClienta,
+    enviarEmailRecordatorio,
     enviarEmailFrancisca,
     enviarEmailResena,
     enviarEmailReagendamientoClienta,

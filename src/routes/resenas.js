@@ -32,7 +32,7 @@ router.get('/verificar', async (request, response) => {
 
         response.json({
             cliente: reserva.cliente,
-            servicio: reserva.servicio,
+            servicio: reserva.servicios.join(', '),
             reservaId: reserva.id
         });
 
@@ -65,7 +65,7 @@ router.post('/', async (request, response) => {
         const resena = await resenasService.crearResena({
             reservaId: reserva.id,
             cliente: reserva.cliente,
-            servicio: reserva.servicio,
+            servicio: reserva.servicios.join(', '),
             calificacion: parseInt(calificacion),
             comentario: comentario.trim()
         });

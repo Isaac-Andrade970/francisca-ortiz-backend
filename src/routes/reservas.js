@@ -64,7 +64,7 @@ router.post('/', async (request, response) => {
             });
         }
 
-        const camposRequeridos = ['cliente', 'telefono', 'email', 'servicio', 'inicio', 'fin'];
+        const camposRequeridos = ['cliente', 'telefono', 'email', 'servicios', 'inicio', 'fin'];
         for (const campo of camposRequeridos) {
             if (!reserva[campo]) {
                 return response.status(400).json({
@@ -73,10 +73,17 @@ router.post('/', async (request, response) => {
             }
         }
 
+        if (!Array.isArray(reserva.servicios) || reserva.servicios.length === 0) {
+            return response.status(400).json({
+                error: 'Debes elegir al menos un servicio'
+            });
+        }
+
         const resultado = await reservasService.crearReservaCompleta(reserva);
 
         const reservaConToken = {
             ...reserva,
+            servicio: reserva.servicios.join(', '),
             tokenReagendar: resultado.tokenReagendar
         };
 
@@ -102,8 +109,8 @@ router.post('/', async (request, response) => {
 
     } catch (error) {
         console.error('Error al crear reserva:', error);
-        response.status(500).json({
-            error: 'No se pudo crear la reserva'
+        response.status(400).json({
+            error: error.message || 'No se pudo crear la reserva'
         });
     }
 });

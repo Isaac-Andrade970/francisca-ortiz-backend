@@ -29,14 +29,16 @@ const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID;
 */
 
 async function crearEvento(reserva) {
+    const nombresServicios = reserva.servicios.join(', ');
+
     const evento = {
-        summary: `${reserva.servicio} - ${reserva.cliente}`,
+        summary: `${nombresServicios} - ${reserva.cliente}`,
         description: `
 Reserva confirmada
 Cliente: ${reserva.cliente}
 Teléfono: ${reserva.telefono}
 Email: ${reserva.email}
-Servicio: ${reserva.servicio}
+Servicios: ${nombresServicios}
 Notas: ${reserva.notas || 'Sin notas'}
         `.trim(),
         start: {
@@ -103,8 +105,26 @@ async function actualizarEvento(eventoId, nuevaFechaInicio, nuevaFechaFin) {
     return response.data;
 }
 
+/**
+ * Revisa si el rango [inicio, fin) se traslapa con algún evento ya
+ * agendado ese día. Se usa para no permitir reservas que choquen.
+ */
+async function hayConflicto(inicio, fin) {
+    const inicioDate = new Date(inicio);
+    const finDate = new Date(fin);
+
+    const eventosDelDia = await listarEventosDelDia(inicioDate);
+
+    return eventosDelDia.some((evento) => {
+        const eventoInicio = new Date(evento.start.dateTime);
+        const eventoFin = new Date(evento.end.dateTime);
+        return inicioDate < eventoFin && finDate > eventoInicio;
+    });
+}
+
 module.exports = {
     crearEvento,
     listarEventosDelDia,
-    actualizarEvento
+    actualizarEvento,
+    hayConflicto
 };

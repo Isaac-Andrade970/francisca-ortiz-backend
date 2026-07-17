@@ -6,6 +6,7 @@ const URL_BACKEND = process.env.URL_BACKEND || 'http://localhost:3000';
 const MONTO_ABONO = 10000;
 
 const email = require('../services/email');
+const googleCalendar = require('../services/googleCalendar');
 
 const express = require('express');
 const router = express.Router();
@@ -46,7 +47,7 @@ async function procesarReservaPendiente(referencia) {
             cliente: pendiente.cliente,
             telefono: pendiente.telefono,
             email: pendiente.email,
-            servicio: pendiente.servicio,
+            servicios: pendiente.servicios,
             notas: pendiente.notas || '',
             inicio: pendiente.inicio,
             fin: pendiente.fin
@@ -54,7 +55,7 @@ async function procesarReservaPendiente(referencia) {
 
         const resultado = await reservasService.crearReservaCompleta(datos);
 
-        const reservaConToken = { ...datos, tokenReagendar: resultado.tokenReagendar };
+        const reservaConToken = { ...datos, servicio: datos.servicios.join(', '), tokenReagendar: resultado.tokenReagendar };
         const [resultadoClienta, resultadoFrancisca] = await Promise.allSettled([
             email.enviarEmailClienta(reservaConToken),
             email.enviarEmailFrancisca(reservaConToken)
@@ -81,11 +82,20 @@ router.post('/iniciar', async (request, response) => {
     try {
         const datos = request.body;
 
-        const requeridos = ['cliente', 'telefono', 'email', 'servicio', 'inicio', 'fin'];
+        const requeridos = ['cliente', 'telefono', 'email', 'servicios', 'inicio', 'fin'];
         for (const campo of requeridos) {
             if (!datos[campo]) {
                 return response.status(400).json({ error: `Falta el campo: ${campo}` });
             }
+        }
+
+        if (!Array.isArray(datos.servicios) || datos.servicios.length === 0) {
+            return response.status(400).json({ error: 'Debes elegir al menos un servicio' });
+        }
+
+        const conflicto = await googleCalendar.hayConflicto(datos.inicio, datos.fin);
+        if (conflicto) {
+            return response.status(409).json({ error: 'Ese horario ya no está disponible. Por favor elige otro.' });
         }
 
         const referencia = 'reserva-' + crypto.randomBytes(8).toString('hex');
@@ -93,7 +103,7 @@ router.post('/iniciar', async (request, response) => {
         const checkout = await sumup.crearCheckout({
             monto: MONTO_ABONO,
             referencia: referencia,
-            descripcion: `Abono reserva - ${datos.servicio}`,
+            descripcion: `Abono reserva - ${datos.servicios.join(', ')}`,
             redirectUrl: `${URL_SITIO}/pago-exitoso.html?ref=${referencia}`,
             returnUrl: `${URL_BACKEND}/api/pagos/webhook`
         });

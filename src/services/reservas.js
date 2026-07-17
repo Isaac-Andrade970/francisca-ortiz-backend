@@ -16,6 +16,11 @@ function generarToken(){
  * Crear una reserva completa: en Firestore + Google Calendar
  */
 async function crearReservaCompleta(reserva) {
+    const conflicto = await googleCalendar.hayConflicto(reserva.inicio, reserva.fin);
+    if (conflicto) {
+        throw new Error('Ese horario ya no está disponible. Por favor elige otro.');
+    }
+
     const evento = await googleCalendar.crearEvento(reserva);
 
     const tokenReagendar = generarToken();
@@ -24,7 +29,7 @@ async function crearReservaCompleta(reserva) {
         cliente: reserva.cliente,
         telefono: reserva.telefono,
         email: reserva.email,
-        servicio: reserva.servicio,
+        servicios: reserva.servicios,
         notas: reserva.notas || '',
         fechaInicio: new Date(reserva.inicio),
         fechaFin: new Date(reserva.fin),
@@ -33,6 +38,7 @@ async function crearReservaCompleta(reserva) {
         reagendamientos: 0,
         tokenReagendar: tokenReagendar,
         emailResenaEnviado: false,
+        emailRecordatorioEnviado: false,
         fechaCreacion: new Date()
     };
 

@@ -21,7 +21,7 @@ router.get('/verificar', async (request, response) => {
 
         response.json({
             cliente: info.cliente,
-            servicio: info.servicio,
+            servicio: info.servicios.join(', '),
             fechaActual: info.fechaInicio,
             puedeReagendar: info.puedeReagendar,
             motivoNoPuede: info.motivoNoPuede,
@@ -98,12 +98,12 @@ router.post('/', async (request, response) => {
                 email.enviarEmailReagendamientoClienta({
                     cliente: reservaAntes.cliente,
                     email: reservaAntes.email,
-                    servicio: reservaAntes.servicio,
+                    servicio: reservaAntes.servicios.join(', '),
                     nuevaFechaInicio: nuevaFechaInicio
                 }),
                 email.enviarEmailReagendamientoFrancisca({
                     cliente: reservaAntes.cliente,
-                    servicio: reservaAntes.servicio,
+                    servicio: reservaAntes.servicios.join(', '),
                     fechaAnterior: fechaAnterior,
                     nuevaFechaInicio: nuevaFechaInicio
                 })
