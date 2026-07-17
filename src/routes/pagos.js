@@ -93,6 +93,10 @@ router.post('/iniciar', async (request, response) => {
             return response.status(400).json({ error: 'Debes elegir al menos un servicio' });
         }
 
+        if (datos.servicios.length > 3) {
+            return response.status(400).json({ error: 'Puedes elegir hasta 3 servicios por reserva' });
+        }
+
         const conflicto = await googleCalendar.hayConflicto(datos.inicio, datos.fin);
         if (conflicto) {
             return response.status(409).json({ error: 'Ese horario ya no está disponible. Por favor elige otro.' });

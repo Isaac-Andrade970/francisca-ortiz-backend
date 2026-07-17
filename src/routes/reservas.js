@@ -79,6 +79,12 @@ router.post('/', async (request, response) => {
             });
         }
 
+        if (reserva.servicios.length > 3) {
+            return response.status(400).json({
+                error: 'Puedes elegir hasta 3 servicios por reserva'
+            });
+        }
+
         const resultado = await reservasService.crearReservaCompleta(reserva);
 
         const reservaConToken = {
