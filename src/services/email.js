@@ -132,19 +132,24 @@ function filaDetalle(etiqueta, valor) {
 
 // FUNCIONES DE FORMATEO DE FECHAS \\
 
+// Siempre se especifica timeZone explícito: el servidor en producción no
+// necesariamente corre en horario de Chile, y sin esto el correo mostraba
+// la hora UTC cruda en vez de la hora local (desfase de varias horas).
 function formatearFechaLarga(fecha) {
     return new Date(fecha).toLocaleDateString('es-CL', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'America/Santiago'
     });
 }
 
 function formatearHora(fecha) {
     return new Date(fecha).toLocaleTimeString('es-CL', {
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'America/Santiago'
     });
 }
 
@@ -152,7 +157,8 @@ function formatearFechaCorta(fecha) {
     return new Date(fecha).toLocaleDateString('es-CL', {
         weekday: 'long',
         day: 'numeric',
-        month: 'long'
+        month: 'long',
+        timeZone: 'America/Santiago'
     });
 }
 
