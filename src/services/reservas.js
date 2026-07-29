@@ -12,6 +12,21 @@ function generarToken(){
     return crypto.randomBytes(15).toString('hex');
 }
 
+// Sin esto, dos reservas de la misma clienta pueden quedar con el correo
+// escrito distinto ("Ana@gmail.com" vs "ana@gmail.com") y el buscador del
+// panel admin (Clientas) las trata como personas distintas.
+function normalizarEmail(email) {
+    return String(email || '').trim().toLowerCase();
+}
+
+// Igual que con el correo: sin un formato fijo, un mismo número queda
+// guardado distinto según cómo lo haya tipeado cada clienta (con o sin
+// "+56", con espacios, etc.) y rompe la búsqueda por teléfono.
+function normalizarTelefono(telefono) {
+    const soloDigitos = String(telefono || '').replace(/\D/g, '');
+    return '+56' + soloDigitos.slice(-9);
+}
+
 /**
  * Crear una reserva completa: en Firestore + Google Calendar
  */
@@ -27,8 +42,8 @@ async function crearReservaCompleta(reserva) {
 
     const docReserva = {
         cliente: reserva.cliente,
-        telefono: reserva.telefono,
-        email: reserva.email,
+        telefono: normalizarTelefono(reserva.telefono),
+        email: normalizarEmail(reserva.email),
         servicios: reserva.servicios,
         notas: reserva.notas || '',
         fechaInicio: new Date(reserva.inicio),

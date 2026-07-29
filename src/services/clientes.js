@@ -47,17 +47,22 @@ async function listarClientesUnicos() {
 async function obtenerHistorialCliente(email) {
     const emailNormalizado = normalizarEmail(email);
 
-    const snapshot = await db.collection('reservas')
-        .where('email', '==', emailNormalizado)
-        .get();
+    // No se busca con un where('email', '==', ...) porque reservas viejas
+    // pueden tener el correo guardado con otra capitalización (ej. alguien
+    // escribió "Nombre@Gmail.com" al reservar) y Firestore compara exacto,
+    // sin ignorar mayúsculas. Se filtra en memoria, igual que listarClientesUnicos.
+    const snapshot = await db.collection('reservas').get();
 
     return snapshot.docs
+        .filter((doc) => normalizarEmail(doc.data().email) === emailNormalizado)
         .map((doc) => {
             const datos = doc.data();
             const fechaInicio = datos.fechaInicio.toDate ? datos.fechaInicio.toDate() : datos.fechaInicio;
             return {
                 id: doc.id,
-                servicios: datos.servicios || [],
+                // datos.servicio (singular) es el formato viejo, de antes de
+                // permitir varios servicios por reserva.
+                servicios: datos.servicios || (datos.servicio ? [datos.servicio] : []),
                 fecha: fechaInicio,
                 estado: datos.estado,
                 notas: datos.notas || ''
