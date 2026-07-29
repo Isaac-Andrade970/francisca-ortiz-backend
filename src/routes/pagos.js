@@ -10,14 +10,21 @@ const googleCalendar = require('../services/googleCalendar');
 
 const express = require('express');
 const router = express.Router();
-const sumup = require('../services/sumup');
+const mercadopago = require('../services/mercadopago');
 
 /**
- * Procesa una reserva pendiente: si el pago está PAGADO, crea la reserva real,
+ * Procesa un pago de Mercado Pago: si está aprobado, crea la reserva real,
  * manda los correos y marca la pendiente como procesada. Es IDEMPOTENTE.
- * La usan tanto /confirmar (cliente vuelve) como /webhook (aviso de SumUp).
+ * La usan tanto /confirmar (cliente vuelve) como /webhook (aviso de Mercado Pago).
+ * Recibe el ID del PAGO (no la referencia): primero se consulta el pago,
+ * y de ahí se saca la referencia (external_reference) para ubicar la reserva pendiente.
  */
-async function procesarReservaPendiente(referencia) {
+async function procesarReservaPendiente(paymentId) {
+    const pago = await mercadopago.obtenerPago(paymentId);
+    const referencia = pago.external_reference;
+
+    if (!referencia) return { estado: 'sin_referencia' };
+
     // Reclamo atómico: si /confirmar y /webhook llegan casi al mismo tiempo,
     // solo uno de los dos logra pasar de 'esperando_pago' a 'procesando'.
     const reclamo = await reservasService.reclamarReservaPendiente(referencia);
@@ -35,14 +42,12 @@ async function procesarReservaPendiente(referencia) {
     const pendiente = reclamo.datos;
 
     try {
-        // Consultamos el estado real del pago en SumUp
-        const checkout = await sumup.obtenerCheckout(pendiente.checkoutId);
-        if (checkout.status !== 'PAID') {
+        if (pago.status !== 'approved') {
             await reservasService.revertirReservaPendiente(referencia);
-            return { estado: 'no_pagado', detalle: checkout.status };
+            return { estado: 'no_pagado', detalle: pago.status };
         }
 
-        // PAGADO → creamos la reserva de verdad
+        // APROBADO → creamos la reserva de verdad
         const datos = {
             cliente: pendiente.cliente,
             telefono: pendiente.telefono,
@@ -77,7 +82,7 @@ async function procesarReservaPendiente(referencia) {
     }
 }
 
-// Inicia el pago: crea el checkout y guarda la reserva como pendiente
+// Inicia el pago: crea la preferencia y guarda la reserva como pendiente
 router.post('/iniciar', async (request, response) => {
     try {
         const datos = request.body;
@@ -104,7 +109,7 @@ router.post('/iniciar', async (request, response) => {
 
         const referencia = 'reserva-' + crypto.randomBytes(8).toString('hex');
 
-        const checkout = await sumup.crearCheckout({
+        const checkout = await mercadopago.crearCheckout({
             monto: MONTO_ABONO,
             referencia: referencia,
             descripcion: `Abono reserva - ${datos.servicios.join(', ')}`,
@@ -128,12 +133,12 @@ router.post('/iniciar', async (request, response) => {
 // Verifica el pago cuando el cliente vuelve a pago-exitoso.html
 router.get('/confirmar', async (request, response) => {
     try {
-        const referencia = request.query.ref;
-        if (!referencia) return response.status(400).json({ error: 'Falta la referencia' });
+        const paymentId = request.query.payment_id;
+        if (!paymentId) return response.status(400).json({ error: 'Falta el ID del pago' });
 
-        const resultado = await procesarReservaPendiente(referencia);
+        const resultado = await procesarReservaPendiente(paymentId);
 
-        if (resultado.estado === 'no_encontrada') {
+        if (resultado.estado === 'no_encontrada' || resultado.estado === 'sin_referencia') {
             return response.status(404).json({ error: 'Reserva no encontrada' });
         }
 
@@ -144,33 +149,40 @@ router.get('/confirmar', async (request, response) => {
     }
 });
 
-// Webhook de SumUp: avisa cuando cambia el estado de un checkout.
-// Es PÚBLICO (SumUp lo llama). Siempre respondemos 200 para evitar reintentos en loop.
+// Webhook de Mercado Pago: avisa cuando cambia el estado de un pago.
+// Es PÚBLICO (Mercado Pago lo llama). Se verifica la firma antes de hacer nada.
 router.post('/webhook', async (request, response) => {
     try {
         const body = request.body || {};
-        const checkoutId = body.id || body.checkout_id || (body.payload && body.payload.id);
+        const tipo = body.type || request.query.type;
 
-        if (!checkoutId) {
-            console.warn('[WEBHOOK SumUp] Payload sin checkout id:', JSON.stringify(body));
+        if (tipo !== 'payment') {
             return response.status(200).json({ recibido: true });
         }
 
-        // Consultamos el checkout real (autenticado) → referencia + estado
-        const checkout = await sumup.obtenerCheckout(checkoutId);
-        const referencia = checkout.checkout_reference;
-
-        if (!referencia) {
-            console.warn('[WEBHOOK SumUp] Checkout sin checkout_reference:', checkoutId);
+        const dataId = (body.data && body.data.id) || request.query['data.id'];
+        if (!dataId) {
+            console.warn('[WEBHOOK Mercado Pago] Payload sin data.id:', JSON.stringify(body));
             return response.status(200).json({ recibido: true });
         }
 
-        const resultado = await procesarReservaPendiente(referencia);
-        console.log(`[WEBHOOK SumUp] ${referencia} → ${resultado.estado}`);
+        const firmaValida = mercadopago.verificarFirma({
+            xSignature: request.headers['x-signature'],
+            xRequestId: request.headers['x-request-id'],
+            dataId: String(dataId)
+        });
+
+        if (!firmaValida) {
+            console.warn('[WEBHOOK Mercado Pago] Firma inválida, se rechaza');
+            return response.status(401).json({ error: 'Firma inválida' });
+        }
+
+        const resultado = await procesarReservaPendiente(dataId);
+        console.log(`[WEBHOOK Mercado Pago] pago ${dataId} → ${resultado.estado}`);
 
         return response.status(200).json({ recibido: true });
     } catch (error) {
-        console.error('[WEBHOOK SumUp] Error:', error.message);
+        console.error('[WEBHOOK Mercado Pago] Error:', error.message);
         // Aun con error devolvemos 200; el /confirmar sigue como respaldo
         return response.status(200).json({ recibido: true });
     }
